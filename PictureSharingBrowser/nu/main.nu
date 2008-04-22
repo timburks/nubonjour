@@ -1,9 +1,20 @@
 (load "nu")      	;; essentials
 (load "cocoa")		;; wrapped frameworks
 (load "console")	;; interactive console
+(load "NuNetwork")
 (import Cocoa)
 
-(class PicBrowserController
+(global AF_INET 2)
+
+(class PicBrowserController is NSObject
+     (ivar (id) imageView
+           (id) ipAddressField
+           (id) pictureServiceList
+           (id) portField
+           (id) browser
+           (id) services
+           (id) serviceBeingResolved)
+     
      (- (void)awakeFromNib is
         (set @browser ((NSNetServiceBrowser alloc) init))
         (set @services (array))
@@ -22,7 +33,10 @@
      (- (void)readAllTheData:(id)note is
         (set theImage ((NSImage alloc) initWithData:((note userInfo) objectForKey:NSFileHandleNotificationDataItem)))
         (@imageView setImage:theImage)
-        ((NSNotificationCenter defaultCenter) removeObserver:self name:NSFileHandleReadToEndOfFileCompletionNotification object:(note object)))
+        ((NSNotificationCenter defaultCenter)
+         removeObserver:self
+         name:NSFileHandleReadToEndOfFileCompletionNotification
+         object:(note object)))
      
      ;; This object is the delegate of its NSNetServiceBrowser object. We're only interested in services-related methods,
      ;; so that's what we'll call.
@@ -33,15 +47,41 @@
      (- (void)netServiceBrowser:(id)aNetServiceBrowser didRemoveService:(id)aNetService moreComing:(BOOL)moreComing is
         ;; This case is slightly more complicated. We need to find the object in the list and remove it.
         ;(@services removeObjectIdenticalTo:aNetService)
-        (set enumerator (@services objectEnumerator))        
+        (set enumerator (@services objectEnumerator))
         (while (set currentNetService (enumerator nextObject))
                (if (currentNetService isEqual:aNetService)
                    (@services removeObject:currentNetService)
                    (break)))
         (if (and @serviceBeingResolved (@serviceBeingResolved isEqual:aNetService))
             (@serviceBeingResolved stop)
-            (set @serviceBeingResolved nil))        
+            (set @serviceBeingResolved nil))
         (unless moreComing (@pictureServiceList reloadData)))
+     
+     (- (void)netServiceDidResolveAddress:(id)sender is
+        (if (> ((sender addresses) count) 0)
+            ;; Iterate through addresses until we find an IPv4 address
+            (set mySocketAddress nil)
+            ((sender addresses) each:
+             (do (address)
+                 (set a ((NuSocketAddress alloc) initWithData:address))
+                 (if (eq (a family) AF_INET)
+                     (set mySocketAddress a))))
+            (if mySocketAddress
+                ;; Cancel the resolve now that we have an IPv4 address.
+                (sender stop)
+                (set @serviceBeingResolved nil)
+                (set ipAddressString (mySocketAddress ipAddressString))
+                (if ipAddressString (@ipAddressField setStringValue:ipAddressString))
+                (@portField setStringValue:((mySocketAddress port) stringValue))
+                (set remoteConnection (NSFileHandle fileHandleWithRemoteINETStreamCloseOnDealloc:YES))
+                (if remoteConnection
+                    ((NSNotificationCenter defaultCenter)
+                     addObserver:self
+                     selector:"readAllTheData:"
+                     name:NSFileHandleReadToEndOfFileCompletionNotification
+                     object:remoteConnection)
+                    (if (eq (remoteConnection connectToSocketAddress:mySocketAddress) 0)
+                        (remoteConnection readToEndOfFileInBackgroundAndNotify))))))
      
      ;; This object is the data source of its NSTableView.
      ;; servicesList is the NSArray containing all those services that have been discovered.
@@ -64,13 +104,7 @@
                   (@portField setStringValue:""))
             (else (set @serviceBeingResolved (@services objectAtIndex:index))
                   (@serviceBeingResolved setDelegate:self)
-                  (@serviceBeingResolved resolve))))
-     )
-
-
-
-
-
+                  (@serviceBeingResolved resolve)))))
 
 ;; define the application delegate class
 (class ApplicationDelegate is NSObject

@@ -1,7 +1,7 @@
 
 ;; source files
 (set @nu_files 	  (filelist "^nu/.*\.nu$"))
-(set @m_files     (filelist "^objc/.*\.m$"))
+;(set @m_files     (filelist "^objc/.*\.m$"))
 
 (set @frameworks '("Cocoa" "Nu"))
 
@@ -12,6 +12,6 @@
 (set @nib_files                (filelist "^resources/.*\.lproj/[^/]*\.nib$"))
 
 ;; tasks
-(compilation-tasks)
+;(compilation-tasks)
 (application-tasks)
 (task "default" => "application")

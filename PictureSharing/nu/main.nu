@@ -1,9 +1,8 @@
 (load "nu")      	;; essentials
 (load "cocoa")		;; wrapped frameworks
 (load "console")	;; interactive console
+(load "NuNetwork")
 (import Cocoa)
-
-(set createSocketOnRandomPort (NuBridgedFunction functionWithName:"createSocketOnRandomPort" signature:"@^i"))
 
 ;; define the application delegate class
 (class PicSharingController is NSObject
@@ -47,14 +46,14 @@ Number of downloads this session: #{@numberOfDownloads}.END))
      
      (- (void)toggleSharing:(id)sender is
         (unless (and @netService @listeningSocket)
-                (set @listeningSocket (createSocketOnRandomPort (set chosenPortPointer (NuPointer new))))
+                (set @listeningSocket (NSFileHandle fileHandleWithLocalINETStreamCloseOnDealloc:YES))
                 ;; lazily instantiate the NSNetService object that will advertise on our behalf.
                 ;; Passing in "" for the domain causes the service to be registered in the
                 ;; default registration domain, which will currently always be "local"
                 (set @netService ((NSNetService alloc) initWithDomain:""
                                   type:"_wwdcpic._tcp."
                                   name:(@serviceNameField stringValue)
-                                  port:(chosenPortPointer value)))
+                                  port:(@listeningSocket portNumber)))
                 (@netService setDelegate:self))
         
         (if (and @netService @listeningSocket)
