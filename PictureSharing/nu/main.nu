@@ -3,8 +3,20 @@
 (load "console")	;; interactive console
 (import Cocoa)
 
+(set createSocketOnRandomPort (NuBridgedFunction functionWithName:"createSocketOnRandomPort" signature:"@^i"))
+
 ;; define the application delegate class
-(class PicSharingController
+(class PicSharingController is NSObject
+     (ivar (id) imageView
+           (id) longerStatusText
+           (id) serviceNameField
+           (id) shortStatusText
+           (id) toggleSharingButton
+           (id) picturePopUpMenu
+           (id) netService
+           (id) listeningSocket
+           (int) numberOfDownloads)
+     
      (- (void) applicationDidFinishLaunching: (id) sender is
         (set $console ((NuConsoleWindowController alloc) init))
         ($console toggleConsole:self))
@@ -33,6 +45,37 @@ Number of downloads this session: #{@numberOfDownloads}.END))
         ;; Set up a default name for the picture service. The user should change this, but it's not a big deal.
         (@serviceNameField setStringValue:"Just another picture service"))
      
+     (- (void)toggleSharing:(id)sender is
+        (unless (and @netService @listeningSocket)
+                (set @listeningSocket (createSocketOnRandomPort (set chosenPortPointer (NuPointer new))))
+                ;; lazily instantiate the NSNetService object that will advertise on our behalf.
+                ;; Passing in "" for the domain causes the service to be registered in the
+                ;; default registration domain, which will currently always be "local"
+                (set @netService ((NSNetService alloc) initWithDomain:""
+                                  type:"_wwdcpic._tcp."
+                                  name:(@serviceNameField stringValue)
+                                  port:(chosenPortPointer value)))
+                (@netService setDelegate:self))
+        
+        (if (and @netService @listeningSocket)
+            (if (eq (sender title) "Start")
+                (then
+                     (set @numberOfDownloads 0)
+                     ((NSNotificationCenter defaultCenter)
+                      addObserver:self selector:"connectionReceived:"
+                      name:NSFileHandleConnectionAcceptedNotification object:@listeningSocket)
+                     (@listeningSocket acceptConnectionInBackgroundAndNotify)
+                     (@netService publish)
+                     (@serviceNameField setEnabled:NO))
+                (else
+                     (@serviceNameField setEnabled:YES)
+                     (@netService stop)
+                     ((NSNotificationCenter defaultCenter) removeObserver:self
+                      name:NSFileHandleConnectionAcceptedNotification object:@listeningSocket)
+                     ;; There is at present no way to get an NSFileHandle to -stop- listening for events,
+                     ;; so we'll just have to tear it down and recreate it the next time we need it.
+                     (set @listeningSocket nil)))))
+     
      (- (void)popupChangedPicture:(id)sender is
         (set picture ((NSImage alloc) initWithContentsOfFile:
                       (+ "/Library/Desktop Pictures/Nature/" ((sender selectedItem) title) ".jpg")))
@@ -56,11 +99,11 @@ Number of downloads this session: #{@numberOfDownloads}.END))
      (- (void)netService:(id)sender didNotPublish:(id)errorDict is
         ;; Display some meaningful error message here, using the longerStatusText as the explanation.
         (@toggleSharingButton setTitle:"Start")
-        (@shortStatusText setStringValue:"Picture Sharing is off.")        
+        (@shortStatusText setStringValue:"Picture Sharing is off.")
         (if (eq (errorDict objectForKey:NSNetServicesErrorCode) NSNetServicesCollisionError)
             (then (@longerStatusText setStringValue:"A name collision occurred. A service is already running with that name someplace else.")
                   (@serviceNameField setEnabled:YES))
-            (else (@longerStatusText setStringValue:"Some other unknown error occurred.")))        
+            (else (@longerStatusText setStringValue:"Some other unknown error occurred.")))
         (set @listeningSocket nil)
         (set @netService nil)))
 
