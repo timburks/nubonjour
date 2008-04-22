@@ -20,37 +20,87 @@
 #import <arpa/inet.h>
 #import <unistd.h>
 
+@interface NuSocketAddress : NSObject
+{
+    NSData *data;
+    struct sockaddr *socketAddress;
+}
+
+@end
+
+@implementation NuSocketAddress
+
+- (NuSocketAddress *) initWithData:(NSData *) d
+{
+    [super init];
+    data = [d retain];
+    socketAddress = (struct sockaddr *)[data bytes];
+    return self;
+}
+
+- (void) dealloc
+{
+    [data release];
+    [super dealloc];
+}
+
+- (int) family
+{
+    return socketAddress->sa_family;
+}
+
+- (struct sockaddr *) socketAddress
+{
+    return socketAddress;
+}
+
+- (NSString *) ipAddressString
+{
+    char buffer[256];
+    if (inet_ntop(AF_INET, &((struct sockaddr_in *)socketAddress)->sin_addr, buffer, sizeof(buffer))) {
+        return [NSString stringWithCString:buffer];
+    }
+    else {
+        return nil;
+    }
+}
+
+- (int) port
+{
+    return ntohs(((struct sockaddr_in *) socketAddress)->sin_port);
+}
+
+@end
+
+@implementation NSFileHandle(Nu)
+
+- (int) connectToSocketAddress:(struct sockaddr *) socketAddress
+{
+    return connect([self fileDescriptor], (struct sockaddr *)socketAddress, sizeof(*socketAddress));
+}
+
+@end
+
 @implementation PicBrowserController
 
 - (void)netServiceDidResolveAddress:(NSNetService *)sender
 {
-
     if ([[sender addresses] count] > 0) {
-        NSData * address;
-        struct sockaddr * socketAddress;
-        NSString * ipAddressString = nil;
-        NSString * portString = nil;
-        int socketToRemoteServer;
-        char buffer[256];
-        int index;
-
         // get an address and port
+        NuSocketAddress *mySocketAddress = nil;
 
         // Iterate through addresses until we find an IPv4 address
+        int index;
         for (index = 0; index < [[sender addresses] count]; index++) {
-            address = [[sender addresses] objectAtIndex:index];
-            socketAddress = (struct sockaddr *)[address bytes];
-            if (socketAddress->sa_family == AF_INET) break;
+            mySocketAddress = [[NuSocketAddress alloc] initWithData:[[sender addresses] objectAtIndex:index]];
+            if ([mySocketAddress family] == AF_INET)
+                break;
         }
 
         // Be sure to include <netinet/in.h> and <arpa/inet.h> or else you'll get compile errors.
-        if (socketAddress) {
-            switch(socketAddress->sa_family) {
+        if (mySocketAddress) {
+            switch([mySocketAddress family]) {
                 case AF_INET:
-                    if (inet_ntop(AF_INET, &((struct sockaddr_in *)socketAddress)->sin_addr, buffer, sizeof(buffer))) {
-                        ipAddressString = [NSString stringWithCString:buffer];
-                        portString = [NSString stringWithFormat:@"%d", ntohs(((struct sockaddr_in *)socketAddress)->sin_port)];
-                    }
                     // Cancel the resolve now that we have an IPv4 address.
                     [sender stop];
                     [sender release];
@@ -61,17 +111,18 @@
                     return;
             }
         }
-        //
 
+        // get presentation forms of the socket address
+        NSString *ipAddressString = [mySocketAddress ipAddressString];
         if (ipAddressString) [ipAddressField setStringValue:ipAddressString];
-        if (portString) [portField setStringValue:portString];
+        [portField setStringValue:[NSString stringWithFormat:@"%d", [mySocketAddress port]]];
 
-        socketToRemoteServer = socket(AF_INET, SOCK_STREAM, 0);
+        int socketToRemoteServer = socket(AF_INET, SOCK_STREAM, 0);
         if(socketToRemoteServer > 0) {
             NSFileHandle * remoteConnection = [[NSFileHandle alloc] initWithFileDescriptor:socketToRemoteServer closeOnDealloc:YES];
             if(remoteConnection) {
                 [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(readAllTheData:) name:NSFileHandleReadToEndOfFileCompletionNotification object:remoteConnection];
-                if(connect(socketToRemoteServer, (struct sockaddr *)socketAddress, sizeof(*socketAddress)) == 0) {
+                if ([remoteConnection connectToSocketAddress:[mySocketAddress socketAddress]] == 0) {
                     [remoteConnection readToEndOfFileInBackgroundAndNotify];
                 }
             }
