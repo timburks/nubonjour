@@ -1,0 +1,17 @@
+
+;; source files
+(set @nu_files 	  (filelist "^nu/.*\.nu$"))
+(set @m_files     (filelist "^objc/.*\.m$"))
+
+(set @frameworks '("Cocoa" "Nu"))
+
+
+;; application description
+(set @application 	       "PictureSharingBrowser")
+(set @application_identifier   "nu.programming.picturesharingbrowser")
+(set @nib_files                (filelist "^resources/.*\.lproj/[^/]*\.nib$"))
+
+;; tasks
+(compilation-tasks)
+(application-tasks)
+(task "default" => "application")
