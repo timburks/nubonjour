@@ -44,6 +44,10 @@
 	return [[[self alloc] initWithHostAddress:host port:port] autorelease];
 }
 
++ (id)addressWithInetSocketData:(NSData *)data {
+  return [[[self alloc] initWithInetSocketData:data] autorelease];
+}
+
 + (id)addressWithInetSocketAddress:(const struct sockaddr_in *)addr {
 	return [[[self alloc] initWithInetSocketAddress:addr] autorelease];
 }
@@ -65,6 +69,12 @@
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = host;
 	return [self initWithInetSocketAddress:&addr];
+}
+
+- (id)initWithInetSocketData:(NSData *)data {
+  // watch out if the data is incorrect!!
+  [data retain];
+  return [self initWithInetSocketAddress:[data bytes]];
 }
 
 - (id)initWithInetSocketAddress:(const struct sockaddr_in *)addr {

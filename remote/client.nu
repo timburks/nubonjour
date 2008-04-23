@@ -6,6 +6,46 @@
 
 (global AF_INET 2)
 
+(class ClientHandler is NSObject
+     (ivars)
+     (- init is
+        (super init)
+        (set @data (NSMutableData data))
+        self)
+     
+     (- (void)socketConnected:(id)sock is
+        (puts "handler connected"))
+     
+     
+     (- (void)socketConnectFailed:(id)sock is
+        (puts "handler connect failed")
+        (puts "error is #{(sock error)}"))
+     
+     (- (void)socketBecameReadable:(id)sock is
+        (puts "handler is readable")
+        (set data (sock readData))
+        (set string ((NSString alloc) initWithData:data encoding:NSUTF8StringEncoding))
+        (puts (+ ">> " string))
+        (self writeString:string toSocket:sock)
+        (if (/quit/ findInString:string)
+            (sock close))
+        (if (eq (data length) 0)
+            (sock close)))
+     
+     (- (void) writeString:(id) string toSocket:(id) socket is
+        (@data appendData:(string dataUsingEncoding:NSUTF8StringEncoding))
+        (if (socket isWritable)
+            (self socketBecameWritable:socket)))
+     
+     (- (void)socketBecameWritable:(id)sock is
+        (puts "handler is writable")
+        (unless (eq (@data length) 0)
+                (try
+                    (set @data (NSMutableData dataWithData:(sock writeData:@data)))
+                    (catch (exception)
+                           (puts (exception description))
+                           (sock close))))))
+
 (class RemoteNuBrowser is NSObject
      (ivars)
      (ivar-accessors)
@@ -74,23 +114,20 @@
              (do (address)
                  (set a ((NuSocketAddress alloc) initWithData:address))
                  (if (eq (a family) AF_INET)
-                     (set mySocketAddress a))))
+                     (set mySocketAddress (AGInetSocketAddress addressWithHostname:"localhost" port:4040)))))
+            ;                     (set mySocketAddress (AGInetSocketAddress addressWithInetSocketData:address)))))
             (if mySocketAddress
                 ;; Cancel the resolve now that we have an IPv4 address.
                 (sender stop)
                 (set @serviceBeingResolved nil)
-                (puts (mySocketAddress ipAddressString))
+                (puts (mySocketAddress hostAddress))
                 (puts ((mySocketAddress port) stringValue))
-                (set remoteConnection (NSFileHandle fileHandleWithRemoteINETStreamCloseOnDealloc:YES))
-                (if remoteConnection
-                    ((NSNotificationCenter defaultCenter)
-                     addObserver:self
-                     selector:"readAllTheData:"
-                     name:NSFileHandleReadCompletionNotification
-                     object:remoteConnection)
-                    (if (eq (remoteConnection connectToSocketAddress:mySocketAddress) 0)
-                        (remoteConnection writeData:("Greetings" dataUsingEncoding:NSUTF8StringEncoding))
-                        (remoteConnection readInBackgroundAndNotify))))))
+                (set $remoteConnection (AGSocket tcpSocket))
+                ($remoteConnection setDelegate:(set $handler ((ClientHandler alloc) init)))
+                ($remoteConnection connectToAddressInBackground:mySocketAddress)
+                ;($handler writeString:"Hello, server" toSocket:$remoteConnection)
+                )))
+     
      
      (- (void)connect:(int)index is
         ;;  Make sure to cancel any previous resolves.

@@ -10,6 +10,7 @@
 //
 // THIS SOFTWARE IS PROVIDED BY THE AUTHOR "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#import <Foundation/Foundation.h>
 #import <AGSocket/AGSocketAddress.h>
 #include <netinet/in.h>
 
@@ -47,6 +48,11 @@ Creates a new address with host address <i>host</i> and port number <i>port</i>.
 + (id)addressWithHostAddress:(uint32_t)host port:(uint16_t)port;
 
 /*!
+@method addressWithInetSocketData:
+Creates a new address with <i>data</i>. */
++ (id)addressWithInetSocketData:(NSData *)data;
+
+/*!
 @method addressWithInetSocketAddress:
 Creates a new address with <i>addr</i>. */
 + (id)addressWithInetSocketAddress:(const struct sockaddr_in *)addr;
@@ -60,6 +66,11 @@ Initializes an address with hostname <i>name</i> and port number <i>port</i>. <i
 @method initWithHostAddress:port:
 Initializes an address with host address <i>host</i> and port number <i>port</i>. */
 - (id)initWithHostAddress:(uint32_t)host port:(uint16_t)port;
+
+/*!
+@method initWithInetSocketData:
+Initializes an address with <i>data</i>. */
+- (id)initWithInetSocketData:(NSData *)data;
 
 /*!
 @method initWithInetSocketAddress:

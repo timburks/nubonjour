@@ -11,7 +11,8 @@
         (set @data (NSMutableData data)))
      
      (- (void)socketConnectFailed:(id)sock is
-        (puts "handler connect failed"))
+        (puts "handler connect failed")
+        (puts "error is #{(self error)}"))
      
      (- (void)socketBecameReadable:(id)sock is
         (puts "handler is readable")
