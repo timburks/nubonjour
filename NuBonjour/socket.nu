@@ -48,4 +48,4 @@
 
 (set url (NSURL URLWithString:"http://programming.nu/"))
 (set test ((SocketTestDelegate alloc) initWithURL:url))
-((NSRunLoop currentRunLoop) runUntilDate:(NSDate dateWithTimeIntervalSinceNow:0.2))
+((NSRunLoop currentRunLoop) runUntilDate:(NSDate dateWithTimeIntervalSinceNow:2.5))

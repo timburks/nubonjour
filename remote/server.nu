@@ -61,7 +61,7 @@
         (unless (and @netService @listeningSocket)
                 (set @listeningSocket (AGSocket tcpSocket))
                 (@listeningSocket setDelegate:self)
-                (set @address (AGInetSocketAddress addressWithHostname:"localhost" port:4040))
+                (set @address (AGInetSocketAddress addressWithHostname:"192.168.1.133" port:1234))
                 ;; lazily instantiate the NSNetService object that will advertise on our behalf.
                 ;; Passing in "" for the domain causes the service to be registered in the
                 ;; default registration domain, which will currently always be "local"

@@ -16,7 +16,6 @@
      (- (void)socketConnected:(id)sock is
         (puts "handler connected"))
      
-     
      (- (void)socketConnectFailed:(id)sock is
         (puts "handler connect failed")
         (puts "error is #{(sock error)}"))
@@ -114,8 +113,8 @@
              (do (address)
                  (set a ((NuSocketAddress alloc) initWithData:address))
                  (if (eq (a family) AF_INET)
-                     (set mySocketAddress (AGInetSocketAddress addressWithHostname:"localhost" port:4040)))))
-            ;                     (set mySocketAddress (AGInetSocketAddress addressWithInetSocketData:address)))))
+                     ;(set mySocketAddress (AGInetSocketAddress addressWithHostname:"localhost" port:4040)))))
+                     (set mySocketAddress (AGInetSocketAddress addressWithInetSocketData:address)))))
             (if mySocketAddress
                 ;; Cancel the resolve now that we have an IPv4 address.
                 (sender stop)
