@@ -1,5 +1,6 @@
-
 (load "NuBonjour")
+
+(set strerror (NuBridgedFunction functionWithName:"strerror" signature:"*I"))
 
 (class SocketTestDelegate is NSObject
      (ivars)
@@ -10,42 +11,41 @@
         (@socket setDelegate:self)
         (set host (url host))
         (set port (url port))
-        (set address (AGInetSocketAddress addressWithHostname:host port:(port unsignedShortValue))) ;; port should run through htons()        
+        (unless port (set port 80))
+        (set address (AGInetSocketAddress addressWithHostname:host port:(port unsignedShortValue)))
         (@socket connectToAddressInBackground:address)
-        (set @request ((NSMutableData alloc) initWithData:("GET #{url} HTTP/1.0\r\n\r\n" dataUsingEncoding:NSUTF8StringEncoding)))
+        (set @request ((NSMutableData alloc) initWithData:
+                       ("GET #{(url description)} HTTP/1.1\r\nHOST: #{(url host)}\r\n\r\n"
+                             dataUsingEncoding:NSUTF8StringEncoding)))
         self)
      
      (- (void)socketConnected:(id)sock is
         (puts "connected"))
      
      (- (void)socketConnectFailed:(id)sock is
-        (puts (@socket error))
+        (puts (+ "error: " (strerror (@socket error))))
         (@socket close))
      
      (- (void)socketBecameReadable:(id)sock is
-     NSData *data;
-     NS_DURING
-     data = [socket readData];
-     NS_HANDLER
-     NSLog([localException description]);
-[socket close];
-NS_ENDHANDLER
-[[NSFileHandle fileHandleWithStandardOutput] writeData:data];
-if (![data length])
-[socket close];
-}
+        (try
+            (set @data (@socket readData))
+            (catch (exception)
+                   (puts (exception description))
+                   (@socket close)))
+        ((NSFileHandle fileHandleWithStandardOutput) writeData:@data)
+        (if (eq 0 (@data length))
+            (puts "closing socket")
+            (@socket close)))
+     
+     (- (void)socketBecameWritable:(id)sock is
+        (if (> (@request length) 0)
+            (try
+                (set dataLeft (@socket writeData:@request))
+                (@request setData:dataLeft)
+                (catch (exception)
+                       (puts (exception description))
+                       (@socket close))))))
 
-- (void)socketBecameWritable:(AGSocket *)sock {
-if (![request length])
-return;
-NS_DURING
-NSData *dataLeft = [socket writeData:request];
-[request setData:dataLeft];
-NS_HANDLER
-NSLog([localException description]);
-
-[socket close];
-NS_ENDHANDLER
-}
-
-@end
+(set url (NSURL URLWithString:"http://programming.nu/"))
+(set test ((SocketTestDelegate alloc) initWithURL:url))
+((NSRunLoop currentRunLoop) runUntilDate:(NSDate dateWithTimeIntervalSinceNow:0.2))

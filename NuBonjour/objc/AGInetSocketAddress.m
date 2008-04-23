@@ -62,7 +62,7 @@
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 	addr.sin_family = AF_INET;
-	addr.sin_port = port;
+	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = host;
 	return [self initWithInetSocketAddress:&addr];
 }
@@ -94,11 +94,11 @@
 }
 
 - (void)setPort:(uint16_t)port {
-	address.sin_port = port;
+	address.sin_port = htons(port);
 }
 
 - (uint16_t)port {
-	return address.sin_port;
+	return ntohs(address.sin_port);
 }
 
 - (NSString *)hostname {

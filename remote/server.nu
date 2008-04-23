@@ -3,30 +3,45 @@
 
 (import Cocoa)
 
+(class Handler is NSObject
+     (ivars)
+     
+     (- (void)socketConnected:(id)sock is
+        (puts "handler connected")
+        (set @data (NSMutableData data)))
+     
+     (- (void)socketConnectFailed:(id)sock is
+        (puts "handler connect failed"))
+     
+     (- (void)socketBecameReadable:(id)sock is
+        (puts "handler is readable")
+        (set data (sock readData))
+        (set string ((NSString alloc) initWithData:data encoding:NSUTF8StringEncoding))
+        (puts (+ ">> " string))
+        (self writeString:string toSocket:sock)
+        (if (/quit/ findInString:string)
+            (sock close))
+        (if (eq (data length) 0)
+            (sock close)))
+     
+     (- (void) writeString:(id) string toSocket:(id) socket is
+        (@data appendData:(string dataUsingEncoding:NSUTF8StringEncoding))
+        (if (socket isWritable)
+            (self socketBecameWritable:socket)))
+     
+     (- (void)socketBecameWritable:(id)sock is
+        (puts "handler is writable")
+        (unless (eq (@data length) 0)
+                (try
+                    (set @data (NSMutableData dataWithData:(sock writeData:@data)))
+                    (catch (exception)
+                           (puts (exception description))
+                           (sock close))))))
+
 ;; define the application delegate class
 (class RemoteNuServer is NSObject
      (ivars)
-     
-     (- (void)connectionReceived:(id)notification is
-        (set incomingConnection ((notification userInfo) objectForKey:NSFileHandleNotificationFileHandleItem))
-        ((notification object) acceptConnectionInBackgroundAndNotify)
-        ((NSNotificationCenter defaultCenter)
-         addObserver:self selector:"dataReceived:"
-         name:NSFileHandleConnectionAcceptedNotification object:(notification object))
-        
-        (puts ((notification object) description))
-        (incomingConnection writeData:("Hello, visitor." dataUsingEncoding:NSUTF8StringEncoding))
-        ;(incomingConnection closeFile)
-        )
-     
-     (- (void) dataReceived:(id) notification is
-        (puts "data received")
-        (set theData ((notification userInfo) objectForKey:NSFileHandleNotificationDataItem))
-        (puts ("received #{(theData length)} bytes"))
-        (puts ((NSString alloc) initWithData:theData encoding:NSUTF8StringEncoding))
-        )
-     
-     
+          
      ; This object is the delegate of the NSApplication instance so we can get notifications about various states.
      ; Here, the NSApplication shared instance is asking if and when we should terminate. By listening for this
      ; message, we can stop the service cleanly, and then indicate to the NSApplication instance that it's all right
@@ -38,27 +53,31 @@
      (- initWithName:name is
         (super init)
         (set @serviceName name)
-        (self toggleSharing:self)
+        (self startSharing)
         self)
      
-     (- (void)toggleSharing:(id)sender is
+     (- (void)startSharing is
         (unless (and @netService @listeningSocket)
-                (set @listeningSocket (NSFileHandle fileHandleWithLocalINETStreamCloseOnDealloc:YES))
+                (set @listeningSocket (AGSocket tcpSocket))
+                (@listeningSocket setDelegate:self)
+                (set @address (AGInetSocketAddress addressWithHostname:"localhost" port:4040))
                 ;; lazily instantiate the NSNetService object that will advertise on our behalf.
                 ;; Passing in "" for the domain causes the service to be registered in the
                 ;; default registration domain, which will currently always be "local"
                 (set @netService ((NSNetService alloc) initWithDomain:""
                                   type:"_nuserve._tcp."
                                   name:@serviceName
-                                  port:(@listeningSocket portNumber)))
+                                  port:(@address port)))
                 (@netService setDelegate:self))
         
         (if (and @netService @listeningSocket)
-            ((NSNotificationCenter defaultCenter)
-             addObserver:self selector:"connectionReceived:"
-             name:NSFileHandleConnectionAcceptedNotification object:@listeningSocket)
-            (@listeningSocket acceptConnectionInBackgroundAndNotify)
+            (@listeningSocket listenOnAddress:@address)
             (@netService publish)))
+     
+     (- (void)socket:(id)sock acceptedChild:(id)child is
+        (puts "connection received, creating handler")
+        (set $child child)
+        (child setDelegate:(set @h ((Handler alloc) init))))
      
      ;; This object is the delegate of its NSNetService. It should implement the NSNetServiceDelegateMethods that
      ;; are relevant for publication (see NSNetServices.h).
