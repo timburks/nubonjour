@@ -6,9 +6,22 @@
 
 (global AF_INET 2)
 
-(puts "well?")
-(class RemoteNuClient is NSObject
+(class RemoteNuBrowser is NSObject
      (ivars)
+     (ivar-accessors)
+     
+     (- init is
+        (super init)
+        (set @browser ((NSNetServiceBrowser alloc) init))
+        (set @services (array))
+        (@browser setDelegate:self)
+        ;; Passing in "" for the domain causes us to browse in the default browse domain,
+        ;; which currently will always be "local".  The service type should be registered
+        ;; with IANA, and it should be listed at <http://www.iana.org/assignments/port-numbers>.
+        ;; At minimum, the service type should be registered at <http://www.dns-sd.org/ServiceTypes.html>
+        ;; Our service type "wwdcpic" isn't listed because this is just sample code.
+        (@browser searchForServicesOfType:"_nuserve._tcp." inDomain:"")
+        self)
      
      (- (void)awakeFromNib is
         (set @browser ((NSNetServiceBrowser alloc) init))
@@ -76,10 +89,10 @@
                      name:NSFileHandleReadCompletionNotification
                      object:remoteConnection)
                     (if (eq (remoteConnection connectToSocketAddress:mySocketAddress) 0)
-                        (remoteConnection writeData:("Greetings" dataUsingEncoding:NSUTF8StringEncoding))                    
+                        (remoteConnection writeData:("Greetings" dataUsingEncoding:NSUTF8StringEncoding))
                         (remoteConnection readInBackgroundAndNotify))))))
      
-     (- (void)download:(int)index is
+     (- (void)connect:(int)index is
         ;;  Make sure to cancel any previous resolves.
         (if @serviceBeingResolved
             (@serviceBeingResolved stop)
@@ -88,8 +101,8 @@
         (@serviceBeingResolved setDelegate:self)
         (@serviceBeingResolved resolve)))
 
-(set c ((RemoteNuClient alloc) init))
-(c awakeFromNib)
+(set b ((RemoteNuBrowser alloc) init))
+;(b awakeFromNib)
 
 (puts "here we go")
 
