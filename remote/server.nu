@@ -4,18 +4,28 @@
 (import Cocoa)
 
 ;; define the application delegate class
-(class PicSharingController is NSObject
+(class RemoteNuServer is NSObject
      (ivars)
      
      (- (void)connectionReceived:(id)notification is
         (set incomingConnection ((notification userInfo) objectForKey:NSFileHandleNotificationFileHandleItem))
         ((notification object) acceptConnectionInBackgroundAndNotify)
-        (incomingConnection writeData:(@picture TIFFRepresentation));
-        (incomingConnection closeFile)
-        (set @numberOfDownloads (+ 1 @numberOfDownloads))
-        (@longerStatusText setStringValue:<<-END
-Click Stop to turn off Picture Sharing.
-Number of downloads this session: #{@numberOfDownloads}.END))
+        ((NSNotificationCenter defaultCenter)
+         addObserver:self selector:"dataReceived:"
+         name:NSFileHandleConnectionAcceptedNotification object:(notification object))
+        
+        (puts ((notification object) description))
+        (incomingConnection writeData:("Hello, visitor." dataUsingEncoding:NSUTF8StringEncoding))
+        ;(incomingConnection closeFile)
+        )
+     
+     (- (void) dataReceived:(id) notification is
+        (puts "data received")
+        (set theData ((notification userInfo) objectForKey:NSFileHandleNotificationDataItem))
+        (puts ("received #{(theData length)} bytes"))
+        (puts ((NSString alloc) initWithData:theData encoding:NSUTF8StringEncoding))
+        )
+     
      
      ; This object is the delegate of the NSApplication instance so we can get notifications about various states.
      ; Here, the NSApplication shared instance is asking if and when we should terminate. By listening for this
@@ -25,10 +35,9 @@ Number of downloads this session: #{@numberOfDownloads}.END))
         (if @netService (@netService stop))
         NSTerminateNow)
      
-     (- initWithName:name picture:file is
+     (- initWithName:name is
         (super init)
         (set @serviceName name)
-        (set @picture ((NSImage alloc) initWithContentsOfFile:file))
         (self toggleSharing:self)
         self)
      
@@ -39,19 +48,18 @@ Number of downloads this session: #{@numberOfDownloads}.END))
                 ;; Passing in "" for the domain causes the service to be registered in the
                 ;; default registration domain, which will currently always be "local"
                 (set @netService ((NSNetService alloc) initWithDomain:""
-                                  type:"_wwdcpic._tcp."
+                                  type:"_nuserve._tcp."
                                   name:@serviceName
                                   port:(@listeningSocket portNumber)))
                 (@netService setDelegate:self))
         
-        (if (and @netService @listeningSocket)       
-            (set @numberOfDownloads 0)
+        (if (and @netService @listeningSocket)
             ((NSNotificationCenter defaultCenter)
              addObserver:self selector:"connectionReceived:"
              name:NSFileHandleConnectionAcceptedNotification object:@listeningSocket)
             (@listeningSocket acceptConnectionInBackgroundAndNotify)
             (@netService publish)))
-          
+     
      ;; This object is the delegate of its NSNetService. It should implement the NSNetServiceDelegateMethods that
      ;; are relevant for publication (see NSNetServices.h).
      (- (void)netServiceWillPublish:(id)sender is
@@ -72,8 +80,7 @@ Number of downloads this session: #{@numberOfDownloads}.END))
         (set @listeningSocket nil)
         (set @netService nil)))
 
-(set c ((PicSharingController alloc) initWithName:"one" picture:"/Library/Desktop Pictures/Nature/Dew Drop.jpg"))
-(set d ((PicSharingController alloc) initWithName:"two" picture:"/Library/Desktop Pictures/Flow 3.jpg"))
+(set c ((RemoteNuServer alloc) initWithName:"Nu Server"))
 
 (puts "here we go")
 ((NSRunLoop mainRunLoop) runUntilDate:(NSDate distantFuture))

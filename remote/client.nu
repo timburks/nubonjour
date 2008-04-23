@@ -1,13 +1,13 @@
 (load "nu")      	;; essentials
-(load "cocoa")		;; wrapped frameworks
-(load "console")	;; interactive console
+
 (load "NuBonjour")
 
 (import Cocoa)
 
 (global AF_INET 2)
 
-(class PicBrowserController is NSObject
+(puts "well?")
+(class RemoteNuClient is NSObject
      (ivars)
      
      (- (void)awakeFromNib is
@@ -19,15 +19,20 @@
         ;; with IANA, and it should be listed at <http://www.iana.org/assignments/port-numbers>.
         ;; At minimum, the service type should be registered at <http://www.dns-sd.org/ServiceTypes.html>
         ;; Our service type "wwdcpic" isn't listed because this is just sample code.
-        (@browser searchForServicesOfType:"_wwdcpic._tcp." inDomain:""))
+        (@browser searchForServicesOfType:"_nuserve._tcp." inDomain:""))
      
-     (- (void)readAllTheData:(id)note is
-        (set theData ((note userInfo) objectForKey:NSFileHandleNotificationDataItem))
+     (- (void)readAllTheData:(id)notification is
+        (set theData ((notification userInfo) objectForKey:NSFileHandleNotificationDataItem))
         (puts ("received #{(theData length)} bytes"))
+        (puts ((NSString alloc) initWithData:theData encoding:NSUTF8StringEncoding))
+        
+        ((notification object) writeData:("Thank you!" dataUsingEncoding:NSUTF8StringEncoding))
+        
+        
         ((NSNotificationCenter defaultCenter)
          removeObserver:self
-         name:NSFileHandleReadToEndOfFileCompletionNotification
-         object:(note object)))
+         name:NSFileHandleReadCompletionNotification
+         object:(notification object)))
      
      ;; This object is the delegate of its NSNetServiceBrowser object. We're only interested in services-related methods,
      ;; so that's what we'll call.
@@ -68,10 +73,11 @@
                     ((NSNotificationCenter defaultCenter)
                      addObserver:self
                      selector:"readAllTheData:"
-                     name:NSFileHandleReadToEndOfFileCompletionNotification
+                     name:NSFileHandleReadCompletionNotification
                      object:remoteConnection)
                     (if (eq (remoteConnection connectToSocketAddress:mySocketAddress) 0)
-                        (remoteConnection readToEndOfFileInBackgroundAndNotify))))))
+                        (remoteConnection writeData:("Greetings" dataUsingEncoding:NSUTF8StringEncoding))                    
+                        (remoteConnection readInBackgroundAndNotify))))))
      
      (- (void)download:(int)index is
         ;;  Make sure to cancel any previous resolves.
@@ -82,10 +88,10 @@
         (@serviceBeingResolved setDelegate:self)
         (@serviceBeingResolved resolve)))
 
-(set c ((PicBrowserController alloc) init))
+(set c ((RemoteNuClient alloc) init))
 (c awakeFromNib)
 
 (puts "here we go")
 
 (function run ()
-     ((NSRunLoop mainRunLoop) runUntilDate:(NSDate dateWithTimeIntervalSinceNow:1)))
+     ((NSRunLoop mainRunLoop) runUntilDate:(NSDate dateWithTimeIntervalSinceNow:0.1)))

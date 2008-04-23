@@ -2,12 +2,12 @@
 (set @m_files     (filelist "^objc/.*.m$"))
 (set @nu_files 	  (filelist "^nu/.*nu$"))
 
-(set @cflags "-g -DDARWIN")
+(set @cflags "-g -DDARWIN -Iobjc")
 (set @ldflags  "-framework Foundation -framework Nu -levent")
 
 ;; framework description
-(set @framework "NuNetwork")
-(set @framework_identifier "nu.programming.nunetwork")
+(set @framework "NuBonjour")
+(set @framework_identifier "nu.programming.nubonjour")
 (set @framework_creator_code "????")
 
 (compilation-tasks)

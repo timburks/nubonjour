@@ -1,7 +1,7 @@
 (load "nu")      	;; essentials
 (load "cocoa")		;; wrapped frameworks
 (load "console")	;; interactive console
-(load "NuNetwork")
+(load "NuBonjour")
 (import Cocoa)
 
 ;; define the application delegate class
