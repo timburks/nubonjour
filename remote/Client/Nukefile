@@ -1,0 +1,12 @@
+;; Nukefile for Nu demo application
+
+;; source files
+(set @nu_files 	  (filelist "^nu/.*nu$"))
+
+;; application description
+(set @application 	       	   "Client")
+(set @application_identifier   "nu.programming.client")
+
+;; tasks
+(application-tasks)
+(task "default" => "application")

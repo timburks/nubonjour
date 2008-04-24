@@ -23,7 +23,6 @@
         (puts "error is #{(sock error)}"))
      
      (- (void)socketBecameReadable:(id)sock is
-        (puts "handler is readable")
         (set data (sock readData))
         (set string ((NSString alloc) initWithData:data encoding:NSUTF8StringEncoding))
         (puts (+ ">> " string))
@@ -32,13 +31,12 @@
         (if (eq (data length) 0)
             (sock close)))
      
-     (- (void) write:(id) string is
+     (- (void) do:(id) string is
         (@data appendData:(string dataUsingEncoding:NSUTF8StringEncoding))
         (if (@socket isWritable)
             (self socketBecameWritable:@socket)))
      
      (- (void)socketBecameWritable:(id)sock is
-        (puts "handler is writable")
         (unless (eq (@data length) 0)
                 (try
                     (set @data (NSMutableData dataWithData:(sock writeData:@data)))
@@ -67,7 +65,8 @@
      ;; so that's what we'll call.
      (- (void)netServiceBrowser:(id)aNetServiceBrowser didFindService:(id)aNetService moreComing:(BOOL)moreComing is
         (@services addObject:aNetService)
-        (puts "found service #{(aNetService name)}"))
+        (puts "found service #{(aNetService name)}")
+        (self connect:0))
      
      (- (void)netServiceBrowser:(id)aNetServiceBrowser didRemoveService:(id)aNetService moreComing:(BOOL)moreComing is
         ;; This case is slightly more complicated. We need to find the object in the list and remove it.
@@ -97,9 +96,9 @@
                 (set @serviceBeingResolved nil)
                 (puts (mySocketAddress hostAddress))
                 (puts ((mySocketAddress port) stringValue))
-                (set $remoteConnection (AGSocket tcpSocket))
-                ($remoteConnection setDelegate:(set $handler ((ClientHandler alloc) init)))
-                ($remoteConnection connectToAddressInBackground:mySocketAddress))))
+                (set remoteConnection (AGSocket tcpSocket))
+                (remoteConnection setDelegate:(set $iphone ((ClientHandler alloc) initWithSocket:remoteConnection)))
+                (remoteConnection connectToAddressInBackground:mySocketAddress))))
      
      (- (void)connect:(int)index is
         ;;  Make sure to cancel any previous resolves.
@@ -111,10 +110,7 @@
         (@serviceBeingResolved resolve)))
 
 (if 0
-    (set b ((RemoteNuBrowser alloc) init))
-    
-    (puts "here we go")
-    
+    (set b ((RemoteNuBrowser alloc) init))    
+    (puts "here we go")    
     (function run ()
-         ((NSRunLoop mainRunLoop) runUntilDate:(NSDate dateWithTimeIntervalSinceNow:0.1)))
-    )
+         ((NSRunLoop mainRunLoop) runUntilDate:(NSDate dateWithTimeIntervalSinceNow:0.1))))
