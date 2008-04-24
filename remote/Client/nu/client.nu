@@ -87,8 +87,7 @@
             (set mySocketAddress nil)
             ((sender addresses) each:
              (do (address)
-                 (set a ((NuSocketAddress alloc) initWithData:address))
-                 (if (eq (a family) AF_INET)
+                 (if (eq (NuSocketAddress familyForAddress:address) AF_INET)
                      (set mySocketAddress (AGInetSocketAddress addressWithInetSocketData:address)))))
             (if mySocketAddress
                 ;; Cancel the resolve now that we have an IPv4 address.
@@ -110,7 +109,7 @@
         (@serviceBeingResolved resolve)))
 
 (if 0
-    (set b ((RemoteNuBrowser alloc) init))    
-    (puts "here we go")    
+    (set b ((RemoteNuBrowser alloc) init))
+    (puts "here we go")
     (function run ()
          ((NSRunLoop mainRunLoop) runUntilDate:(NSDate dateWithTimeIntervalSinceNow:0.1))))

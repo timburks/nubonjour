@@ -17,6 +17,11 @@
 
 @implementation NuSocketAddress
 
++ (int) familyForAddress:(NSData *)data
+{
+    return ((struct sockaddr *)[data bytes])->sa_family;
+}
+
 - (NuSocketAddress *) initWithData:(NSData *) d
 {
     [super init];
