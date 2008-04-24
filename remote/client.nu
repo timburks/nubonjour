@@ -2,9 +2,9 @@
 
 (load "NuBonjour")
 
-(import Cocoa)
-
 (global AF_INET 2)
+(global NSFileHandleNotificationDataItem "NSFileHandleNotificationDataItem")
+(global NSUTF8StringEncoding 4)
 
 (class ClientHandler is NSObject
      (ivars)
@@ -62,30 +62,6 @@
         (@browser searchForServicesOfType:"_nuserve._tcp." inDomain:"")
         self)
      
-     (- (void)awakeFromNib is
-        (set @browser ((NSNetServiceBrowser alloc) init))
-        (set @services (array))
-        (@browser setDelegate:self)
-        ;; Passing in "" for the domain causes us to browse in the default browse domain,
-        ;; which currently will always be "local".  The service type should be registered
-        ;; with IANA, and it should be listed at <http://www.iana.org/assignments/port-numbers>.
-        ;; At minimum, the service type should be registered at <http://www.dns-sd.org/ServiceTypes.html>
-        ;; Our service type "wwdcpic" isn't listed because this is just sample code.
-        (@browser searchForServicesOfType:"_nuserve._tcp." inDomain:""))
-     
-     (- (void)readAllTheData:(id)notification is
-        (set theData ((notification userInfo) objectForKey:NSFileHandleNotificationDataItem))
-        (puts ("received #{(theData length)} bytes"))
-        (puts ((NSString alloc) initWithData:theData encoding:NSUTF8StringEncoding))
-        
-        ((notification object) writeData:("Thank you!" dataUsingEncoding:NSUTF8StringEncoding))
-        
-        
-        ((NSNotificationCenter defaultCenter)
-         removeObserver:self
-         name:NSFileHandleReadCompletionNotification
-         object:(notification object)))
-     
      ;; This object is the delegate of its NSNetServiceBrowser object. We're only interested in services-related methods,
      ;; so that's what we'll call.
      (- (void)netServiceBrowser:(id)aNetServiceBrowser didFindService:(id)aNetService moreComing:(BOOL)moreComing is
@@ -112,8 +88,7 @@
             ((sender addresses) each:
              (do (address)
                  (set a ((NuSocketAddress alloc) initWithData:address))
-                 (if (eq (a family) AF_INET)
-                     ;(set mySocketAddress (AGInetSocketAddress addressWithHostname:"localhost" port:4040)))))
+                 (if (eq (a family) AF_INET)                     
                      (set mySocketAddress (AGInetSocketAddress addressWithInetSocketData:address)))))
             (if mySocketAddress
                 ;; Cancel the resolve now that we have an IPv4 address.
@@ -126,8 +101,7 @@
                 ($remoteConnection connectToAddressInBackground:mySocketAddress)
                 ;($handler writeString:"Hello, server" toSocket:$remoteConnection)
                 )))
-     
-     
+          
      (- (void)connect:(int)index is
         ;;  Make sure to cancel any previous resolves.
         (if @serviceBeingResolved
@@ -138,7 +112,6 @@
         (@serviceBeingResolved resolve)))
 
 (set b ((RemoteNuBrowser alloc) init))
-;(b awakeFromNib)
 
 (puts "here we go")
 

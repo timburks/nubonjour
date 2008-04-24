@@ -1,8 +1,6 @@
 (load "nu")      	;; essentials
 (load "NuBonjour")
 
-(import Cocoa)
-
 (class Handler is NSObject
      (ivars)
      
@@ -42,7 +40,7 @@
 ;; define the application delegate class
 (class RemoteNuServer is NSObject
      (ivars)
-          
+     
      ; This object is the delegate of the NSApplication instance so we can get notifications about various states.
      ; Here, the NSApplication shared instance is asking if and when we should terminate. By listening for this
      ; message, we can stop the service cleanly, and then indicate to the NSApplication instance that it's all right
@@ -61,7 +59,7 @@
         (unless (and @netService @listeningSocket)
                 (set @listeningSocket (AGSocket tcpSocket))
                 (@listeningSocket setDelegate:self)
-                (set @address (AGInetSocketAddress addressWithHostname:"192.168.1.133" port:1234))
+                (set @address (AGInetSocketAddress addressWithHostname:(NuSocketAddress localIPAddress) port:4040))
                 ;; lazily instantiate the NSNetService object that will advertise on our behalf.
                 ;; Passing in "" for the domain causes the service to be registered in the
                 ;; default registration domain, which will currently always be "local"

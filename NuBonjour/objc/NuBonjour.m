@@ -5,6 +5,7 @@
 #import <netinet/in.h>
 #import <arpa/inet.h>
 #import <unistd.h>
+#import <ifaddrs.h>
 
 @interface NuSocketAddress : NSObject
 {
@@ -56,6 +57,33 @@
     return ntohs(((struct sockaddr_in *) socketAddress)->sin_port);
 }
 
++ (NSString *) localIPAddress
+{
+    NSString *name = nil;
+    struct ifaddrs*                 list;
+    struct ifaddrs*                 ifap;
+
+    if(getifaddrs(&list) < 0)
+        return NULL;
+
+    for(ifap = list; ifap; ifap = ifap->ifa_next) {
+        // Ignore loopback
+        if((ifap->ifa_name[0] == 'l') && (ifap->ifa_name[1] == 'o'))
+            continue;
+
+        if(ifap->ifa_addr->sa_family == AF_INET) {
+            char buffer[256];
+            if (inet_ntop(AF_INET, &((struct sockaddr_in *)ifap->ifa_addr)->sin_addr, buffer, sizeof(buffer))) {
+                name = [NSString stringWithCString:buffer];
+            }
+            break;
+        }
+    }
+
+    freeifaddrs(list);
+    return name;
+}
+
 @end
 
 @implementation NSFileHandle(Nu)
@@ -81,7 +109,7 @@
 
 + (id) fileHandleWithLocalINETStreamCloseOnDealloc:(int) closeOnDealloc
 {
-    // Here, create the socket from traditional BSD socket calls, 
+    // Here, create the socket from traditional BSD socket calls,
     // and then set up an NSFileHandle with that to listen for incoming connections.
     int fdForListening;
     struct sockaddr_in serverAddress;
