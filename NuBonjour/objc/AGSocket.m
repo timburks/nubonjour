@@ -42,6 +42,10 @@ static void AGSocketCallBack(CFSocketRef native, CFSocketCallBackType type, CFDa
 			[self release];
 			return nil;
 		}
+		
+    int yes = 1;
+    int result = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+				
 		// create local and remote address
 		localAddress = [[AGSocketAddress alloc] init];
 		remoteAddress = [[AGSocketAddress alloc] init];

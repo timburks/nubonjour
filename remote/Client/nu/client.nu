@@ -15,6 +15,8 @@
         (set @data (NSMutableData data))
         self)
      
+     (- close is (@socket close))
+     
      (- (void)socketConnected:(id)sock is
         (puts "handler connected"))
      
@@ -78,6 +80,9 @@
                    (break)))
         (puts "removed service #{(aNetService name)}")
         (if (and @serviceBeingResolved (@serviceBeingResolved isEqual:aNetService))
+            (if $handler
+                ($handler close)
+                (set $handler nil))
             (@serviceBeingResolved stop)
             (set @serviceBeingResolved nil)))
      
@@ -108,8 +113,3 @@
         (@serviceBeingResolved setDelegate:self)
         (@serviceBeingResolved resolve)))
 
-(if 0
-    (set b ((RemoteNuBrowser alloc) init))
-    (puts "here we go")
-    (function run ()
-         ((NSRunLoop mainRunLoop) runUntilDate:(NSDate dateWithTimeIntervalSinceNow:0.1))))
