@@ -113,4 +113,4 @@
         (@serviceBeingResolved setDelegate:self)
         (@serviceBeingResolved resolve)))
 
-(macro _ (($iphone do: (margs stringValue))))
+(macro -- (($iphone do: (margs stringValue))))

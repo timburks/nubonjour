@@ -1,0 +1,11 @@
+
+NuBonjour is a collection of classes that help Nu programs connect over Bonjour.
+
+Contents:
+  NuBonjour  - a component that builds as a framework for the Mac and a static library for the iPhone
+  Client     - a Nu-based application that can be used to connect to and interact with an iPhone using NuBonjour.
+  background - preliminary work that led to NuBonjour
+
+Released under the Apache 2.0 license.
+
+Tim Burks

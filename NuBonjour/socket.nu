@@ -1,3 +1,5 @@
+;; Demo. Uses NuBonjour to execute an HTTP request
+
 (load "NuBonjour")
 
 (set strerror (NuBridgedFunction functionWithName:"strerror" signature:"*I"))
