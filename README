@@ -6,6 +6,8 @@ Contents:
   Client     - a Nu-based application that can be used to connect to and interact with an iPhone using NuBonjour.
   background - preliminary work that led to NuBonjour
 
-Released under the Apache 2.0 license.
+Released under the Apache 2.0 license. 
+
+NuBonjour is built on AGSocket. AGSocket source files (AG*) are included and released under their original license.
 
 Tim Burks
